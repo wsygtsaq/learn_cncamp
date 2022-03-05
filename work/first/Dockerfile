@@ -1,10 +1,13 @@
-FROM golang:1.17-alpine
-ENV GOPATH=/go
-
-WORKDIR /go/src/test/first
-RUN mkdir src pkg bin
+FROM golang:1.17 AS build
+WORKDIR /httpserver/
 COPY . .
-RUN go mod init
-RUN go mod tidy
-RUN go build
-ENTRYPOINT ["./first"]
+ENV CGO_ENABLED=0
+ENV GO111MODULE=on
+ENV GOPROXY=https://goproxy.cn,direct
+RUN GOOS=linux go build -o httpserver main.go
+
+FROM busybox
+COPY --from=build /httpserver/httpserver /httpserver/httpserver
+EXPOSE 8891
+WORKDIR /httpserver/
+ENTRYPOINT ["./httpserver"]

@@ -18,7 +18,7 @@ type Response struct {
 func main()  {
 	http.HandleFunc("/postHandle", postHandle)
 	http.HandleFunc("/healthz", healthz)
-	err := http.ListenAndServe(":80", nil)
+	err := http.ListenAndServe(":8891", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
