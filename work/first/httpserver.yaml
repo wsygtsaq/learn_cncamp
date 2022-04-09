@@ -13,8 +13,14 @@ spec:
   template:
     spec:
       containers:
-        image: nginx
+        image: ldkyq0322/httpserver
         imagePullPolicy: IfNotPresent
+        env:
+          - name: VERSION
+            valueFrom:
+              configMapKeyRef:
+                name: testconfig
+                key: VERSION
         livenessProbe:
           httpGet:
             path: /healthz

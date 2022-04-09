@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/golang/glog"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type Response struct {
@@ -16,12 +20,27 @@ type Response struct {
 }
 
 func main()  {
-	http.HandleFunc("/postHandle", postHandle)
-	http.HandleFunc("/healthz", healthz)
-	err := http.ListenAndServe(":8891", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// 处理SIGTERM 信号
+	stopChan := make(chan os.Signal)
+	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/postHandle", postHandle)
+	mux.HandleFunc("/healthz", healthz)
+	srv := &http.Server{Addr: ":8891", Handler: mux}
+
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	<-stopChan // wait for SIGINT or SIGTERM
+	log.Println("Shutting down server...")
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	srv.Shutdown(ctx)
+	log.Println("Server gracefully stopped")
 }
 
 func healthz(w http.ResponseWriter, r *http.Request)  {
@@ -36,7 +55,7 @@ func postHandle(w http.ResponseWriter, r *http.Request) {
 	var params map[string]string
 	decoder.Decode(&params)
 	for k,v := range params {
-		fmt.Printf("k===%s,value===%s \n", k, v)
+		glog.V(3).Info("k===%s,value===%s \n", k, v)
 	}
 
 	//header处理
@@ -52,9 +71,9 @@ func postHandle(w http.ResponseWriter, r *http.Request) {
 	resp := Response{returnCode, "调用成功", os.Getenv("VERSION")}
 	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		fmt.Printf("err is %s \n", err)
+		glog.V(3).Info("err is %s \n", err)
 	}
-	fmt.Printf("hostIp is %s, returnCode is %d \n", getClientIp(r), returnCode)
+	glog.V(3).Info("hostIp is %s, returnCode is %d \n", getClientIp(r), returnCode)
 }
 
 func getClientIp(req *http.Request) string {
