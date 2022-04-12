@@ -19,6 +19,16 @@ spec:
       labels:
         app: httpserver
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - httpserver
+              topologyKey: kubernetes.io/hostname
       containers:
         - env:
             - name: VERSION
