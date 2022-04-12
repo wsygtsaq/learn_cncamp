@@ -13,7 +13,7 @@ spec:
   template:
     spec:
       containers:
-        image: ldkyq0322/httpserver
+        image: ldkyq0322/httpserver:v2
         imagePullPolicy: IfNotPresent
         env:
           - name: VERSION
@@ -24,7 +24,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: 8891
             scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 20
@@ -32,7 +32,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: 8891
             scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 20

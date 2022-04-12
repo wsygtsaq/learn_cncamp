@@ -3,6 +3,7 @@ WORKDIR /httpserver/
 COPY . .
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
+ENV GOPATH=/go
 ENV GOPROXY=https://goproxy.cn,direct
 RUN GOOS=linux go build -o httpserver main.go
 
