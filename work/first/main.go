@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/golang/glog"
+	"github.com/learn/work/first/metrics"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -24,9 +27,12 @@ func main()  {
 	stopChan := make(chan os.Signal)
 	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
 
+	metrics.Register()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/postHandle", postHandle)
 	mux.HandleFunc("/healthz", healthz)
+	mux.Handle("/metrics", promhttp.Handler())
 	srv := &http.Server{Addr: ":8891", Handler: mux}
 
 	go func() {
@@ -39,7 +45,9 @@ func main()  {
 	<-stopChan // wait for SIGINT or SIGTERM
 	log.Println("Shutting down server...")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	srv.Shutdown(ctx)
+	if err := srv.Shutdown(ctx); err != nil {
+		glog.Fatalf("Server Shutdown Failed:%+v", err)
+	}
 	log.Println("Server gracefully stopped")
 }
 
@@ -50,6 +58,8 @@ func healthz(w http.ResponseWriter, r *http.Request)  {
 }
 
 func postHandle(w http.ResponseWriter, r *http.Request) {
+	timer := metrics.NewTimer()
+	defer timer.ObserveTotal()
 	//获取请求参数
 	decoder := json.NewDecoder(r.Body)
 	var params map[string]string
@@ -65,7 +75,10 @@ func postHandle(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set(k, header.Get(k))
 		}
 	}
-
+	// 添加延迟
+	rand.Seed(time.Now().UnixNano())
+	delay := rand.Intn(2000)
+	time.Sleep(time.Millisecond*time.Duration(delay))
 	//返回结果
 	returnCode := 200
 	resp := Response{returnCode, "调用成功", os.Getenv("VERSION")}
